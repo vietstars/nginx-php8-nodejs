@@ -1,75 +1,21 @@
 version: '3.9'
 
-# build for M1 add --platform linux/amd64
-
 networks:
   dev_org_net:
 
 services:
 
   web:
-    container_name: nginx-1.22_php-8.0.28r0
-    build: .
-    # command: /bin/sh -c 'composer create-project laravel/laravel web-app-child 
-    # command: /bin/sh -c 'composer require laravel/ui'
-    # command: /bin/sh -c 'php artisan ui react'
-    # command: /bin/sh -c 'composer create-project laravel/laravel web-app && cd web-app && php artisan serve --host=0.0.0.0 --port=8080'
-    # command: /bin/sh -c 'php artisan serve --host=0.0.0.0 --port=8080'
+    container_name: nginx-1.22_php-8.0.29r0
+    image: dec24th82/complex:nginx-php8-node
     volumes:
       - ./src:/var/www/dev.org/html/public
+      - ./config/certs:/etc/nginx/certs
+      - ./config/web/nginx/fpm-pool.conf:/etc/php8/php-fpm.d/www.conf
+      - ./config/web/php/php.ini:/etc/php8/conf.d/custom.ini
+      - ./config/web/nginx/supervisord.conf:/etc/supervisor/conf.d/supervisord.conf
     ports:
       - "${APP_PORT}:80"
       - "${APP_TLS_PORT}:443"
-    environment:
-      - 'DATABASE_URL=mysql://root:${DB_ROOT_PASS}@db_mysql:3309/${DB_NAME}?serverVersion=10.5'
-    depends_on:
-      db_mysql:
-        condition: service_healthy
     networks:
       - dev_org_net
-
-  db_mysql:
-    image: mariadb:10.5.9
-    container_name: 'db-mysql-10.5'
-    restart: always
-    ports:
-      - '${DB_MYSQL_PORT}:3306'
-    environment:
-      MYSQL_ROOT_PASSWORD: '${DB_ROOT_PASS}'
-      MYSQL_USER: '${MYSQL_USER}'
-      MYSQL_PASSWORD: '${MYSQL_PASS}'
-      MYSQL_DATABASE: '${DB_NAME}'
-    volumes:
-      - db_data:/var/lib/mysql
-      - ./docker/db/mariadb/my.cnf:/etc/mysql/conf.d/my.cnf
-    healthcheck:
-      test: mysqladmin ping -h 127.0.0.1 -u root --password=$DB_ROOT_PASS
-      interval: 5s
-      retries: 5
-    networks:
-      - dev_org_net
-  phpmyadmin:
-    image: phpmyadmin:5.2.1
-    container_name: 'db-phpmyadmin'
-    links:
-      - db_mysql
-    environment:
-      PMA_HOST: db_mysql
-      PMA_PORT: 3306
-      PMA_USER: 'root'
-      PMA_PASSWORD: 'admin'
-      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASS}
-      MYSQL_USER: 'root'
-      MYSQL_PASSWORD: 'admin'
-    depends_on: 
-      db_mysql:
-        condition: service_healthy
-    ports:
-      - ${APP_DB_ADMIN_PORT}:80
-    volumes: 
-      - /sessions
-    networks:
-      - dev_org_net
-
-volumes:
-  db_data:
